@@ -166,6 +166,12 @@
     "error": "Sorry, something went wrong. Please try again.",
     "welcome": "Namaste! Ask me about today's mandi prices, trends or which mandi pays more."
   },
+  "email": {
+    "subject": "{code} is your {app} login code",
+    "intro": "Use this code to sign in to Mandi Bhav on your phone or computer:",
+    "expiry": "The code works for 1 hour and can be used once.",
+    "ignore": "If you didn't ask for this code, you can ignore this email."
+  },
   "limits": {
     "search": "You've used today's {n} free price checks. They reset at midnight (IST).",
     "chat": "You've used today's {n} free chat messages. They reset at midnight (IST).",

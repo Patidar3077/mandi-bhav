@@ -47,6 +47,10 @@ All of these are server-only. They are never sent to the browser.
 
 ## Login
 
-Email one-time code (Supabase Auth) for now. Phone OTP needs an SMS provider plus Indian DLT registration; add it later in Supabase → Authentication → Providers → Phone.
+People sign in with a 6-digit code sent to their own email, the first time on each phone or computer. After that they stay signed in until they sign out.
 
-To send a 6-digit code instead of only a link, edit Supabase → Authentication → Email Templates → "Magic Link" and include `{{ .Token }}`.
+- **App-sent code (recommended).** Set `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` (and optionally `EMAIL_FROM`). `/api/auth/send-code` creates the account on first login, gets the code from Supabase (`auth.admin.generateLink`) and emails it in the user's language. It's rate-limited per email (30s apart, 5 an hour) and per IP (20 an hour).
+  - Gmail: turn on 2-step verification, create an App Password at https://myaccount.google.com/apppasswords, then use `smtp.gmail.com`, port `465`.
+- **Fallback.** Without SMTP settings, Supabase sends the email. Its free sender only allows a few emails an hour, and its default templates contain a link but no code. To include the code, add `{{ .Token }}` to Supabase → Authentication → Email Templates → "Confirm signup" and "Magic Link".
+
+Phone OTP needs an SMS provider plus Indian DLT registration; add it later in Supabase → Authentication → Providers → Phone.

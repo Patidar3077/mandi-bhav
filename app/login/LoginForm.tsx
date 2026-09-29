@@ -28,14 +28,32 @@ export function LoginForm() {
     setError(null);
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setError(t("login.invalidEmail"));
     setBusy(true);
-    const { error } = await createClient().auth.signInWithOtp({
-      email: email.trim(),
-      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-    setBusy(false);
-    if (error) return setError(error.status === 429 ? t("login.rateLimited") : t("common.error"));
-    setStep("code");
-    setResendIn(RESEND_SECONDS);
+    try {
+      // The app emails the 6-digit code itself; if no email sender is set up, Supabase sends it instead.
+      const res = await fetch("/api/auth/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; fallback?: boolean; error?: string };
+      if (res.status === 429) return setError(t("login.rateLimited"));
+      if (body.error === "invalid_email") return setError(t("login.invalidEmail"));
+      if (body.fallback) {
+        const { error } = await createClient().auth.signInWithOtp({
+          email: email.trim(),
+          options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/callback` },
+        });
+        if (error) return setError(error.status === 429 ? t("login.rateLimited") : t("common.error"));
+      } else if (!body.ok) {
+        return setError(t("common.error"));
+      }
+      setStep("code");
+      setResendIn(RESEND_SECONDS);
+    } catch {
+      setError(t("common.error"));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function verify() {

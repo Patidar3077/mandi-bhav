@@ -31,6 +31,12 @@ export type Database = {
         Update: { district?: string; neighbour?: string };
         Relationships: [];
       };
+      login_code_sends: {
+        Row: { email: string; id: number; ip: string | null; sent_at: string };
+        Insert: { email: string; id?: never; ip?: string | null; sent_at?: string };
+        Update: { email?: string; id?: never; ip?: string | null; sent_at?: string };
+        Relationships: [];
+      };
       markets: {
         Row: { district: string; id: number; market: string; state: string };
         Insert: { district: string; id?: never; market: string; state?: string };
