@@ -49,6 +49,7 @@
     "invalidEmail": "Please enter a valid email address.",
     "invalidCode": "That code didn't work. Please check it and try again.",
     "linkAlso": "You can also tap the sign-in link in the email.",
+    "linkFailed": "That sign-in link didn't work here. Please enter the 6-digit code from the email instead, or open the link in the same browser where you asked for the code.",
     "phoneSoon": "Login with phone number (OTP) is coming soon.",
     "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
     "languageLabel": "Language"

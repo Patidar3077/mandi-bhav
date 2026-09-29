@@ -46,7 +46,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
         <section className="card p-5 sm:p-6">
           <h2 className="mb-4 text-xl font-semibold text-leaf-deep">{t("login.title")}</h2>
-          {error && <p className="mb-3 rounded-lg bg-down-bg p-3 text-sm text-down">{t("login.invalidCode")}</p>}
+          {error && <p className="mb-3 rounded-lg bg-down-bg p-3 text-sm text-down">{t("login.linkFailed")}</p>}
           <LoginForm />
           <p className="mt-4 flex items-center gap-1.5 text-[13px] text-muted">
             <Icon name="info" className="text-[16px]" /> {t("login.phoneSoon")}
