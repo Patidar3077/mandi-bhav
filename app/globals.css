@@ -1,26 +1,128 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* "Earthy Agri-Trust" design tokens (see _source/design/DESIGN.md) */
+@theme {
+  --color-canvas: #f4ebdd;
+  --color-card: #fffbf4;
+  --color-line: #e2d7c3;
+  --color-soil: #f1eae2;
+  --color-cream: #fff1e7;
+  --color-sand: #fcebdd;
+  --color-ink: #3b3128;
+  --color-muted: #6e6155;
+  --color-leaf: #2f5d3a;
+  --color-leaf-dark: #22452a;
+  --color-leaf-deep: #164525;
+  --color-leaf-soft: #bbefc1;
+  --color-fresh: #6ba368;
+  --color-up-bg: #eaf3ec;
+  --color-down: #c0533a;
+  --color-down-bg: #fdf2ee;
+  --color-brown: #7a5230;
+  --color-peach: #ffdcc2;
+
+  --font-sans: var(--font-noto-sans), "Noto Sans", "Noto Sans Devanagari", system-ui, sans-serif;
+
+  --shadow-card: 0 2px 6px -1px rgba(59, 49, 40, 0.06), 0 1px 3px -1px rgba(59, 49, 40, 0.04);
+  --shadow-float: 0 6px 14px -2px rgba(59, 49, 40, 0.1), 0 3px 6px -2px rgba(59, 49, 40, 0.06);
+  --shadow-sheet: 0 16px 28px -4px rgba(59, 49, 40, 0.18), 0 6px 12px -3px rgba(59, 49, 40, 0.08);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1.25rem;
+  border-radius: 0.5rem;
+  background: var(--color-leaf);
+  color: var(--color-card);
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.btn-primary:hover,
+.btn-primary:active {
+  background: var(--color-leaf-dark);
+}
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1.25rem;
+  border-radius: 0.5rem;
+  background: var(--color-card);
+  border: 1.5px solid var(--color-brown);
+  color: var(--color-brown);
+  font-weight: 600;
+}
+
+.field {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 0.875rem;
+  border-radius: 0.5rem;
+  background: var(--color-card);
+  border: 1.5px solid var(--color-line);
+  color: var(--color-ink);
+  font-size: 16px;
+}
+.field:focus {
+  outline: none;
+  border: 2px solid var(--color-leaf);
+  box-shadow: 0 0 0 4px #2f5d3a15;
+}
+.field::placeholder {
+  color: var(--color-muted);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
 }

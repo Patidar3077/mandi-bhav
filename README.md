@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mandi Bhav
 
-## Getting Started
+Mandi (APMC) crop prices, nearby-mandi comparison, price forecasts and an AI chat for farmers around Mumbai and across Maharashtra, in English, Hindi and Marathi. Built by Dhamedi Agro Solution.
 
-First, run the development server:
+- **Stack:** Next.js 16 (App Router) + TypeScript + Tailwind v4 on Vercel · Supabase (Postgres, auth, RLS) · Apify actor `themineworks/india-data-gov-scraper` → data.gov.in · Claude API · Recharts
+- **Specs:** [`docs/PRD.md`](docs/PRD.md) is the source of truth, [`docs/DESIGN.md`](docs/DESIGN.md) is the design system, and [`CLAUDE.md`](CLAUDE.md) holds the project rules.
+
+## Run locally
 
 ```bash
+npm install
+cp .env.example .env.local   # then fill in the keys
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Keys you need to add
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Where to get it |
+|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API Keys → `service_role` (secret) |
+| `APIFY_TOKEN` | Apify Console → Settings → API & Integrations |
+| `DATA_GOV_IN_API_KEY` | data.gov.in → sign in → My Account → API key (free) |
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys |
+| `APIFY_WEBHOOK_SECRET`, `CRON_SECRET` | Any long random string |
 
-## Learn More
+All of these are server-only. They are never sent to the browser.
 
-To learn more about Next.js, take a look at the following resources:
+## How data flows
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Daily sync.** Vercel Cron calls `/api/sync/daily` at 21:00 IST. It starts the Apify actor for `state=Maharashtra`. When the run finishes, Apify calls `/api/sync/apify-webhook`, which upserts the rows into `prices`.
+   - Vercel Hobby allows one cron a day. For the 14:00 IST run, create a schedule in Apify for the same actor and input, and add a webhook on "Run succeeded" pointing to `https://<your-domain>/api/sync/apify-webhook?secret=<APIFY_WEBHOOK_SECRET>`. Scheduled runs are adopted automatically.
+2. **Live fetch.** When a search has no price for today in that district, the app runs the actor for that crop and district. This is deduped for 60 minutes and gives up after about 90 seconds, showing the last stored price instead.
+3. **Cost guard.** Every Apify call goes through `lib/apify.ts`, which applies `maxResults`, `maxTotalChargeUsd` (Apify's minimum is $0.50) and the daily cap `DAILY_APIFY_SPEND_CAP_USD`. Every run is logged in `sync_runs`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Code map
 
-## Deploy on Vercel
+- `app/(app)/market`: crop and mandi selection with results
+- `app/(app)/analysis/[commodity]`: charts, comparison, forecast, guidance and the docked chat
+- `app/api/*`: prices, live fetch, chat (streams progress as NDJSON), insights, sync webhook and cron
+- `lib/forecast/model.ts`: the statistical forecast (7-day moving average, 21-day linear trend, damped weeks 2–4, widening ranges). The AI never produces prices.
+- `lib/ai/*`: Claude chat loop with 5 data tools, and cached summary/factor insights
+- `lib/limits.ts` + the `consume_usage()` SQL function: trial and daily limits, enforced on the server
+- `messages/{en,hi,mr}.json`: every user-facing string
+- `supabase/migrations`: schema, RLS, seed data (crop names in 3 languages, Maharashtra district neighbours)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Login
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Email one-time code (Supabase Auth) for now. Phone OTP needs an SMS provider plus Indian DLT registration; add it later in Supabase → Authentication → Providers → Phone.
+
+To send a 6-digit code instead of only a link, edit Supabase → Authentication → Email Templates → "Magic Link" and include `{{ .Token }}`.
