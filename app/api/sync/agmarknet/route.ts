@@ -6,7 +6,8 @@ import { addDays, daysBetween } from "@/lib/format";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const MAX_DAYS_PER_CALL = 7;
+// One request per crop per day, one at a time (Agmarknet rate-limits parallel requests): 3 days ≈ 130 requests.
+const MAX_DAYS_PER_CALL = 3;
 
 /**
  * Backfill history from Agmarknet: GET ?from=YYYY-MM-DD&to=YYYY-MM-DD (at most 7 days per call).
@@ -24,6 +25,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: `from/to must be dates at most ${MAX_DAYS_PER_CALL} days apart` }, { status: 400 });
   }
   const dates = Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i));
-  const result = await syncAgmarknet({ dates, concurrency: 3 });
+  const result = await syncAgmarknet({ dates });
   return NextResponse.json({ dates, ...result });
 }

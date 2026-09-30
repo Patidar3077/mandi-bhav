@@ -31,10 +31,20 @@ const DISTRICT_ALIASES: Record<string, string> = {
 
 export type AgmCommodity = { data_name: string; agmarknet_id: number; agmarknet_group_id: number };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** GET with retries: Agmarknet answers 429 when requests overlap, so back off and try again. */
 async function getJson(path: string, timeoutMs = 45_000) {
-  const res = await fetch(`${BASE}${path}`, { headers: HEADERS, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
-  if (!res.ok) throw new Error(`Agmarknet ${res.status} for ${path.split("?")[0]}`);
-  return res.json();
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${BASE}${path}`, { headers: HEADERS, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
+    if (res.ok) return res.json();
+    if ((res.status === 429 || res.status >= 500) && attempt < 3) {
+      const retryAfter = Number(res.headers.get("retry-after"));
+      await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 2000 * 2 ** attempt);
+      continue;
+    }
+    throw new Error(`Agmarknet ${res.status} for ${path.split("?")[0]}`);
+  }
 }
 
 // market id → district (our naming). The filter list is ~0.5 MB, so keep it for a few hours per server instance.
@@ -85,10 +95,8 @@ export async function fetchCommodityDay(c: AgmCommodity, date: string): Promise<
     commodityId: String(c.agmarknet_id),
     includeExcel: "false",
   });
-  const [report, districts] = await Promise.all([
-    getJson(`/prices-and-arrivals/market-report/specific?${qs}`) as Promise<Report>,
-    marketDistricts(),
-  ]);
+  const districts = await marketDistricts();
+  const report = (await getJson(`/prices-and-arrivals/market-report/specific?${qs}`)) as Report;
   const mh = report.states?.find((s) => s.stateId === MAHARASHTRA_ID);
   const fetchedAt = new Date().toISOString();
   const rows: PriceRow[] = [];
@@ -150,7 +158,7 @@ export async function syncAgmarknet(opts: { dates: string[]; commodities?: strin
   const rows: PriceRow[] = [];
   let failures = 0;
   let lastError: string | undefined;
-  await pool(jobs, opts.concurrency ?? 3, async ({ date, c }) => {
+  await pool(jobs, opts.concurrency ?? 1, async ({ date, c }) => {
     try {
       rows.push(...(await fetchCommodityDay(c, date)));
     } catch (err) {
@@ -188,5 +196,5 @@ export async function liveAgmarknet(commodity: string): Promise<AgmSyncResult | 
     .limit(1);
   if (recent?.length) return { skipped: true };
   const today = todayIST();
-  return syncAgmarknet({ dates: [today, addDays(today, -1)], commodities: [commodity], concurrency: 2, filterKey });
+  return syncAgmarknet({ dates: [today, addDays(today, -1)], commodities: [commodity], filterKey });
 }
