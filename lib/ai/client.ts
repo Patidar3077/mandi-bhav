@@ -1,16 +1,40 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { getVercelOidcToken } from "@vercel/oidc";
 import { serverEnv } from "@/lib/env";
 
-let anthropic: Anthropic | null = null;
+/**
+ * Server-only Claude access, two ways:
+ * - ANTHROPIC_API_KEY set → Claude API directly (with server-side refusal fallback).
+ * - Otherwise → Vercel AI Gateway, authenticated by the deployment's own OIDC token (no key to manage;
+ *   billed to the Vercel account's AI credits).
+ */
+const GATEWAY_URL = "https://ai-gateway.vercel.sh";
+export const FALLBACK_BETA = "server-side-fallback-2026-07-01";
 
-/** Server-only Claude client. The API key never reaches the browser. */
-export function claude() {
-  anthropic ??= new Anthropic({ apiKey: serverEnv.anthropicApiKey(), timeout: 55_000, maxRetries: 1 });
-  return anthropic;
+export const usingGateway = () => !process.env.ANTHROPIC_API_KEY;
+
+let direct: Anthropic | null = null;
+
+export async function claude(): Promise<Anthropic> {
+  if (!usingGateway()) {
+    direct ??= new Anthropic({ apiKey: serverEnv.anthropicApiKey(), timeout: 55_000, maxRetries: 1 });
+    return direct;
+  }
+  // OIDC tokens are short-lived and per request on Vercel, so build a client each time.
+  const apiKey = process.env.AI_GATEWAY_API_KEY || (await getVercelOidcToken());
+  return new Anthropic({ apiKey, baseURL: GATEWAY_URL, timeout: 55_000, maxRetries: 1 });
 }
 
-export const model = () => serverEnv.claudeModel();
+/** Model id in the right form: "claude-sonnet-5-5" directly, "anthropic/claude-sonnet-5.5" via the gateway. */
+export function model() {
+  const id = serverEnv.claudeModel();
+  if (!usingGateway()) return id;
+  if (id.startsWith("anthropic/")) return id;
+  return `anthropic/${id.replace(/-(\d+)-(\d+)$/, "-$1.$2")}`;
+}
 
-// Server-side refusal fallback: if the model declines, the API re-runs the request on a fallback model.
-export const FALLBACK_BETA = "server-side-fallback-2026-07-01";
+/** Request options that only the direct Claude API accepts (the gateway ignores or rejects them). */
+export function directOnly<T extends object>(extra: T): T | Record<string, never> {
+  return usingGateway() ? {} : extra;
+}

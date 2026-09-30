@@ -1,5 +1,5 @@
 import "server-only";
-import { claude, model, FALLBACK_BETA } from "./client";
+import { claude, directOnly, model, FALLBACK_BETA } from "./client";
 import { adminClient } from "@/lib/supabase/admin";
 import { LOCALE_NAMES, type Locale } from "@/lib/i18n/config";
 
@@ -34,26 +34,29 @@ export async function getInsight(facts: InsightFacts, locale: Locale): Promise<I
     .maybeSingle();
   if (cached) return { summary: cached.summary as string, factors: (cached.factors as string[]) ?? [] };
 
-  const response = await claude().beta.messages.create({
+  const response = await (await claude()).beta.messages.create({
     model: model(),
     max_tokens: 1500,
-    betas: [FALLBACK_BETA],
-    fallbacks: "default",
-    output_config: {
-      effort: "low",
-      format: {
-        type: "json_schema",
-        schema: {
-          type: "object",
-          properties: {
-            summary: { type: "string" },
-            factors: { type: "array", items: { type: "string" } },
+    // Structured output directly on the Claude API; through the gateway the prompt below asks for the same JSON.
+    ...directOnly({
+      betas: [FALLBACK_BETA],
+      fallbacks: "default" as const,
+      output_config: {
+        effort: "low" as const,
+        format: {
+          type: "json_schema" as const,
+          schema: {
+            type: "object",
+            properties: {
+              summary: { type: "string" },
+              factors: { type: "array", items: { type: "string" } },
+            },
+            required: ["summary", "factors"],
+            additionalProperties: false,
           },
-          required: ["summary", "factors"],
-          additionalProperties: false,
         },
       },
-    },
+    }),
     system:
       "You write short, simple explanations of mandi price data for farmers in Maharashtra. Use only the numbers you are given; never invent or change a price. Words about what may move prices must be possibilities, not facts.",
     messages: [
@@ -62,6 +65,7 @@ export async function getInsight(facts: InsightFacts, locale: Locale): Promise<I
         content: `Write in ${LOCALE_NAMES[locale]} (${locale}).
 1. "summary": ONE short sentence (max 20 words) describing the current price movement of this crop at this place, e.g. "Onion prices in Pune are up 8% this week and still rising." Use only these facts.
 2. "factors": 2 to 3 very short points (max 14 words each) about things that MAY move this crop's price in the coming weeks around this time of year (season, harvest arrivals, festivals, rain). Word each as a possibility ("may", "could").
+Reply with only a JSON object: {"summary": "...", "factors": ["...", "..."]}
 
 Facts (prices are rupees per quintal):
 ${JSON.stringify(facts, null, 2)}`,
@@ -71,7 +75,8 @@ ${JSON.stringify(facts, null, 2)}`,
 
   const text = response.content.find((b) => b.type === "text");
   if (response.stop_reason === "refusal" || !text || text.type !== "text") throw new Error("no insight produced");
-  const parsed = JSON.parse(text.text) as Insight;
+  const json = text.text.slice(text.text.indexOf("{"), text.text.lastIndexOf("}") + 1);
+  const parsed = JSON.parse(json) as Insight;
   const insight = { summary: String(parsed.summary ?? "").trim(), factors: (parsed.factors ?? []).map(String).slice(0, 3) };
 
   await db.from("ai_insights").upsert({ ...key, ...insight }, { onConflict: "commodity,district,market,insight_date,language", ignoreDuplicates: true });

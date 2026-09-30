@@ -1,6 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import { claude, model, FALLBACK_BETA } from "./client";
+import { claude, directOnly, model, FALLBACK_BETA } from "./client";
 import { runTool, TOOL_DEFINITIONS } from "./tools";
 
 const SYSTEM_RULES = `You are "Mandi AI", a helpful assistant for farmers and small traders around Mumbai and across Maharashtra. You answer questions about crop and vegetable mandi (APMC market) prices and where and when to sell.
@@ -43,13 +43,16 @@ export async function answer(history: ChatTurn[], ctx: ChatContext, onTool: (nam
 
   const messages: Anthropic.Beta.BetaMessageParam[] = history.map((m) => ({ role: m.role, content: m.content }));
 
+  const client = await claude();
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-    const response = await claude().beta.messages.create({
+    const response = await client.beta.messages.create({
       model: model(),
       max_tokens: 4000,
-      betas: [FALLBACK_BETA],
-      fallbacks: "default",
-      output_config: { effort: "medium" },
+      ...directOnly({
+        betas: [FALLBACK_BETA],
+        fallbacks: "default" as const,
+        output_config: { effort: "medium" as const },
+      }),
       system: [
         { type: "text", text: SYSTEM_RULES },
         { type: "text", text: contextNote },
