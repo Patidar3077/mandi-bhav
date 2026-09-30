@@ -20,8 +20,9 @@ export const serverEnv = {
   claudeModel: () => process.env.CLAUDE_MODEL || "claude-sonnet-5-5",
   apifyWebhookSecret: () => required("APIFY_WEBHOOK_SECRET"),
   cronSecret: () => process.env.CRON_SECRET || undefined,
-  dailySpendCapUsd: () => Number(process.env.DAILY_APIFY_SPEND_CAP_USD || "5"),
-  dailySyncMaxResults: () => Number(process.env.DAILY_SYNC_MAX_RESULTS || "3000"),
+  // Keep the cap above the daily sync estimate (rows × $0.002) so the sync isn't skipped, with room for live fetches.
+  dailySpendCapUsd: () => Number(process.env.DAILY_APIFY_SPEND_CAP_USD || "6"),
+  dailySyncMaxResults: () => Number(process.env.DAILY_SYNC_MAX_RESULTS || "2000"),
   siteUrl: () =>
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000"),
