@@ -58,12 +58,7 @@ export default async function AnalysisPage({ params, searchParams }: PageProps<"
 
   const limit = await consumeSearch(profile, commodity, district, market);
   if (!limit.ok) {
-    const key = limit.reason === "fairUse" ? "limits.fairUse" : "limits.search";
-    return (
-      <div className="card mx-auto max-w-xl bg-down-bg p-5 text-[15px] text-down">
-        {t(key, { n: limit.limit })} {t("common.paidSoon")}.
-      </div>
-    );
+    return <div className="card mx-auto max-w-xl bg-down-bg p-5 text-[15px] text-down">{t("limits.fairUse")}</div>;
   }
 
   const [snapshot, { result, series, usedNearbyAverage }] = await Promise.all([

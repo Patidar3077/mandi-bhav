@@ -14,7 +14,7 @@ export function LanguageSwitch() {
   return (
     <div
       role="group"
-      aria-label={t("login.languageLabel")}
+      aria-label={t("common.languageLabel")}
       className={`flex items-center rounded-full border border-line bg-card p-0.5 shadow-card ${pending ? "opacity-60" : ""}`}
     >
       {LOCALES.map((l) => (

@@ -6,7 +6,7 @@ import { requireProfile } from "@/lib/auth";
 import { recentSearches } from "@/lib/limits";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const profile = await requireProfile({ allowNotOnboarded: true });
+  const profile = await requireProfile();
   const [lastCrop] = await recentSearches(profile.id, 1);
   const trendsHref = lastCrop
     ? `/analysis/${encodeURIComponent(lastCrop)}?district=${encodeURIComponent(profile.district)}`
@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <Header profile={profile} trendsHref={trendsHref} />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:py-6">{children}</main>
       <Footer />
-      {profile.onboarded && <FloatingChat />}
+      <FloatingChat />
     </ChatProvider>
   );
 }

@@ -10,7 +10,7 @@ type Props = {
   districts: string[];
   markets: { market: string; district: string }[];
   neighbours: Record<string, string[]>;
-  mode: "onboarding" | "profile";
+  mode: "welcome" | "profile";
 };
 
 export function ProfileForm({ initial, districts, markets, neighbours, mode }: Props) {
@@ -25,11 +25,11 @@ export function ProfileForm({ initial, districts, markets, neighbours, mode }: P
 
   return (
     <form action={action} className="flex flex-col gap-5">
-      {mode === "onboarding" && <input type="hidden" name="redirect" value="market" />}
+      {mode === "welcome" && <input type="hidden" name="redirect" value="market" />}
 
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-semibold">{t("onboarding.nameLabel")}</span>
-        <input name="name" defaultValue={initial.name} maxLength={80} autoComplete="name" className="field" />
+        <input name="name" defaultValue={initial.name} maxLength={80} autoComplete="name" required placeholder={t("onboarding.namePlaceholder")} className="field" />
       </label>
 
       <fieldset className="flex flex-col gap-1.5">
@@ -74,7 +74,7 @@ export function ProfileForm({ initial, districts, markets, neighbours, mode }: P
 
       {state.error && (
         <p role="alert" className="rounded-lg bg-down-bg p-3 text-sm text-down">
-          {t("common.error")}
+          {state.error === "invalid" ? t("welcome.nameRequired") : state.error === "busy" ? t("welcome.busy") : t("common.error")}
         </p>
       )}
       {state.ok && mode === "profile" && (
@@ -84,7 +84,7 @@ export function ProfileForm({ initial, districts, markets, neighbours, mode }: P
       )}
 
       <button type="submit" className="btn-primary w-full sm:w-auto" disabled={pending}>
-        {mode === "onboarding" ? t("onboarding.continue") : t("common.save")}
+        {mode === "welcome" ? t("welcome.start") : t("common.save")}
       </button>
     </form>
   );

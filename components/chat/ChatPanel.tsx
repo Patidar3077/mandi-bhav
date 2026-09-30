@@ -66,9 +66,7 @@ export function ChatPanel({ onClose, className = "" }: { onClose?: () => void; c
           body: JSON.stringify({ message, conversationId, viewing }),
         });
         if (res.status === 429) {
-          const d = (await res.json()) as { reason: string; limit: number };
-          const key = d.reason === "fairUse" ? "limits.fairUse" : "limits.chat";
-          setMessages((m) => [...m, { role: "assistant", content: `${t(key, { n: d.limit })} ${t("common.paidSoon")}.`, error: true }]);
+          setMessages((m) => [...m, { role: "assistant", content: t("limits.fairUse"), error: true }]);
           return;
         }
         if (!res.ok || !res.body) throw new Error("chat failed");

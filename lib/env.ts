@@ -9,7 +9,11 @@ function required(name: string) {
 
 export const serverEnv = {
   supabaseUrl: () => required("NEXT_PUBLIC_SUPABASE_URL"),
-  supabaseServiceRoleKey: () => required("SUPABASE_SERVICE_ROLE_KEY"),
+  supabaseAnonKey: () => required("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+  /** Private pass sent as `x-app-secret`; database RLS only lets requests carrying it through. */
+  appDbSecret: () => required("APP_DB_SECRET"),
+  /** Signs the visitor cookie so nobody can pretend to be another visitor. */
+  visitorCookieSecret: () => required("VISITOR_COOKIE_SECRET"),
   apifyToken: () => required("APIFY_TOKEN"),
   dataGovApiKey: () => process.env.DATA_GOV_IN_API_KEY || undefined,
   anthropicApiKey: () => required("ANTHROPIC_API_KEY"),

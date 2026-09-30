@@ -59,11 +59,7 @@ export function MarketClient({ commodities, districts, markets, neighbours, rece
   const fetchSnapshot = useCallback(async (c: Commodity, d: string, m: string) => {
     const qs = new URLSearchParams({ commodity: c.data_name, district: d, ...(m ? { market: m } : {}) });
     const res = await fetch(`/api/prices?${qs}`);
-    if (res.status === 429) {
-      const body = (await res.json()) as { reason: string; limit: number };
-      const key = body.reason === "fairUse" ? "limits.fairUse" : "limits.search";
-      return { limit: `${t(key, { n: body.limit })} ${t("common.paidSoon")}.` };
-    }
+    if (res.status === 429) return { limit: t("limits.fairUse") };
     if (!res.ok) throw new Error("prices failed");
     return { snapshot: ((await res.json()) as { snapshot: Snapshot }).snapshot };
   }, [t]);

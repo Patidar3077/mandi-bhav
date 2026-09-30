@@ -10,7 +10,6 @@
     "error": "Something went wrong. Please try again.",
     "retry": "Try again",
     "save": "Save",
-    "signOut": "Sign out",
     "notReported": "Not reported",
     "pricesFor": "Prices for {date}",
     "lastReported": "Last reported: {date}",
@@ -20,11 +19,8 @@
     "kisanCallCentre": "Kisan Call Centre",
     "dataSource": "Price data: Agmarknet via data.gov.in",
     "disclaimer": "This is an estimate based on past market prices. It's not a guaranteed future price. Please check with your mandi before selling.",
-    "trialDaysLeft": "Free trial: {n} days left",
-    "trialLastDay": "Free trial: last day",
-    "freePlan": "Free plan",
-    "paidSoon": "Paid plans coming soon",
-    "company": "Dhamedi Agro Solution"
+    "company": "Dhamedi Agro Solution",
+    "languageLabel": "Language"
   },
   "nav": {
     "rates": "Mandi Rates",
@@ -32,39 +28,22 @@
     "advisor": "AI Advisor",
     "profile": "My profile"
   },
-  "login": {
-    "title": "Sign in",
-    "subtitle": "Check today's mandi prices, compare nearby mandis and see where prices are heading.",
-    "emailLabel": "Email address",
-    "emailPlaceholder": "you@example.com",
-    "sendCode": "Send code",
-    "sending": "Sending…",
-    "codeSentTo": "We sent a 6-digit code to {email}",
-    "codeLabel": "Enter the 6-digit code",
-    "verify": "Verify & continue",
-    "verifying": "Checking…",
-    "resendIn": "Resend code in {s}s",
-    "resend": "Resend code",
-    "changeEmail": "Use a different email",
-    "invalidEmail": "Please enter a valid email address.",
-    "invalidCode": "That code didn't work. Please check it and try again.",
-    "linkAlso": "You can also tap the sign-in link in the email.",
-    "linkFailed": "That sign-in link didn't work here. Please enter the 6-digit code from the email instead, or open the link in the same browser where you asked for the code.",
-    "phoneSoon": "Login with phone number (OTP) is coming soon.",
-    "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
-    "languageLabel": "Language"
+  "welcome": {
+    "title": "Welcome to Mandi Bhav",
+    "subtitle": "Tell us your name and district to see mandi prices near you. It's free, with no sign-up or login.",
+    "start": "Start",
+    "nameRequired": "Please enter your name and choose your district.",
+    "busy": "Too many new users from this network today. Please try again tomorrow."
   },
   "onboarding": {
-    "title": "Set up your account",
-    "subtitle": "This helps us show prices from mandis near you.",
-    "nameLabel": "Your name (optional)",
+    "nameLabel": "Your name",
     "languageLabel": "Language",
     "districtLabel": "Your district",
     "marketLabel": "Preferred mandi (optional)",
     "marketNone": "No preference",
     "marketHint": "More mandis appear here as prices are collected each day.",
-    "continue": "Continue",
-    "saved": "Saved"
+    "saved": "Saved",
+    "namePlaceholder": "e.g. Ramesh Patil"
   },
   "market": {
     "title": "Check mandi price",
@@ -166,21 +145,14 @@
     "error": "Sorry, something went wrong. Please try again.",
     "welcome": "Namaste! Ask me about today's mandi prices, trends or which mandi pays more."
   },
-  "email": {
-    "subject": "{code} is your {app} login code",
-    "intro": "Use this code to sign in to Mandi Bhav on your phone or computer:",
-    "expiry": "The code works for 1 hour and can be used once.",
-    "ignore": "If you didn't ask for this code, you can ignore this email."
-  },
   "limits": {
-    "search": "You've used today's {n} free price checks. They reset at midnight (IST).",
-    "chat": "You've used today's {n} free chat messages. They reset at midnight (IST).",
-    "fairUse": "You've reached today's usage limit. Please try again tomorrow.",
-    "trialOver": "Your 7-day free trial has ended."
+    "fairUse": "You've reached today's usage limit. Please try again tomorrow."
   },
   "profile": {
     "title": "My profile",
-    "email": "Signed in as {email}",
-    "saved": "Your settings are saved."
+    "saved": "Your settings are saved.",
+    "hello": "Namaste, {name}",
+    "forget": "Use as a different person",
+    "forgetHint": "This phone or computer will forget your name and settings."
   }
 }

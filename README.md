@@ -1,9 +1,11 @@
 # Mandi Bhav
 
-Mandi (APMC) crop prices, nearby-mandi comparison, price forecasts and an AI chat for farmers around Mumbai and across Maharashtra, in English, Hindi and Marathi. Built by Dhamedi Agro Solution.
+Mandi (APMC) crop prices, nearby-mandi comparison, price forecasts and an AI chat for farmers around Mumbai and across Maharashtra, in English, Hindi and Marathi. Free for everyone, with no sign-up or login. Built by Dhamedi Agro Solution.
 
-- **Stack:** Next.js 16 (App Router) + TypeScript + Tailwind v4 on Vercel · Supabase (Postgres, auth, RLS) · Apify actor `themineworks/india-data-gov-scraper` → data.gov.in · Claude API · Recharts
-- **Specs:** [`docs/PRD.md`](docs/PRD.md) is the source of truth, [`docs/DESIGN.md`](docs/DESIGN.md) is the design system, and [`CLAUDE.md`](CLAUDE.md) holds the project rules.
+Live: https://mandibhav.vercel.app
+
+- **Stack:** Next.js 16 (App Router) + TypeScript + Tailwind v4 on Vercel · Supabase Postgres (RLS) · Apify actor `themineworks/india-data-gov-scraper` → data.gov.in · Claude API · Recharts
+- **Specs:** [`docs/PRD.md`](docs/PRD.md) is the original spec, [`docs/DESIGN.md`](docs/DESIGN.md) is the design system, and [`CLAUDE.md`](CLAUDE.md) holds the project rules. Since the PRD was written, login and the trial were dropped (see "No login" below).
 
 ## Run locally
 
@@ -15,17 +17,32 @@ npm run dev
 
 Open http://localhost:3000.
 
-## Keys you need to add
+## Deploy
 
-| Variable | Where to get it |
+The Vercel project `mandibhav` is deployed with the Vercel CLI:
+
+```bash
+vercel deploy --prod --yes
+```
+
+## Keys
+
+| Variable | Where it comes from |
 |---|---|
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API Keys → `service_role` (secret) |
+| `APP_DB_SECRET` | A random string, which must equal `private.app_config` → `app_secret` in the database |
+| `VISITOR_COOKIE_SECRET` | A random string (signs the visitor cookie) |
 | `APIFY_TOKEN` | Apify Console → Settings → API & Integrations |
 | `DATA_GOV_IN_API_KEY` | data.gov.in → sign in → My Account → API key (free) |
 | `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys |
-| `APIFY_WEBHOOK_SECRET`, `CRON_SECRET` | Any long random string |
+| `APIFY_WEBHOOK_SECRET`, `CRON_SECRET` | Random strings |
 
 All of these are server-only. They are never sent to the browser.
+
+## No login
+
+- The first screen (`/welcome`) asks for a name and district (plus an optional mandi and language). That creates a row in `visitors`, and the app remembers it on the device with an HMAC-signed, httpOnly cookie (`mb_visitor`). "Use as a different person" on the profile page forgets it.
+- **Database access.** The server uses the public anon key plus a private `x-app-secret` header. The RLS policy `"server only"` on every table allows a request only when that header matches `private.app_config.app_secret` (migration 0005). Browsers never have the secret, so they can't read or write anything directly.
+- **Free, with hidden fair-use caps** (`lib/limits.ts`): 100 price checks and 200 chat messages per visitor per day, and 30 new visitors per IP per day. These stop abuse and runaway Apify/AI costs; real farmers won't hit them.
 
 ## How data flows
 
@@ -36,21 +53,12 @@ All of these are server-only. They are never sent to the browser.
 
 ## Code map
 
+- `app/welcome`: name + district, no login
 - `app/(app)/market`: crop and mandi selection with results
 - `app/(app)/analysis/[commodity]`: charts, comparison, forecast, guidance and the docked chat
 - `app/api/*`: prices, live fetch, chat (streams progress as NDJSON), insights, sync webhook and cron
 - `lib/forecast/model.ts`: the statistical forecast (7-day moving average, 21-day linear trend, damped weeks 2–4, widening ranges). The AI never produces prices.
 - `lib/ai/*`: Claude chat loop with 5 data tools, and cached summary/factor insights
-- `lib/limits.ts` + the `consume_usage()` SQL function: trial and daily limits, enforced on the server
+- `lib/auth.ts`: visitor cookie. `lib/limits.ts` + the `consume_usage()` SQL function: fair-use caps
 - `messages/{en,hi,mr}.json`: every user-facing string
 - `supabase/migrations`: schema, RLS, seed data (crop names in 3 languages, Maharashtra district neighbours)
-
-## Login
-
-People sign in with a 6-digit code sent to their own email, the first time on each phone or computer. After that they stay signed in until they sign out.
-
-- **App-sent code (recommended).** Set `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` (and optionally `EMAIL_FROM`). `/api/auth/send-code` creates the account on first login, gets the code from Supabase (`auth.admin.generateLink`) and emails it in the user's language. It's rate-limited per email (30s apart, 5 an hour) and per IP (20 an hour).
-  - Gmail: turn on 2-step verification, create an App Password at https://myaccount.google.com/apppasswords, then use `smtp.gmail.com`, port `465`.
-- **Fallback.** Without SMTP settings, Supabase sends the email. Its free sender only allows a few emails an hour, and its default templates contain a link but no code. To include the code, add `{{ .Token }}` to Supabase → Authentication → Email Templates → "Confirm signup" and "Magic Link".
-
-Phone OTP needs an SMS provider plus Indian DLT registration; add it later in Supabase → Authentication → Providers → Phone.

@@ -1,18 +1,23 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { LogoMark } from "@/components/Logo";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { Icon } from "@/components/Icon";
+import { ProfileForm } from "@/components/ProfileForm";
+import { getProfile } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
-import { LoginForm } from "./LoginForm";
+import { getPlaceOptions } from "@/lib/districts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
-  return { title: t("login.title") };
+  return { title: t("welcome.title") };
 }
 
-export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { t } = await getT();
-  const { error } = await searchParams;
+/** First screen: name + district, then straight into the app. No sign-up or login. */
+export default async function WelcomePage() {
+  if (await getProfile()) redirect("/market");
+  const [{ t, locale }, places] = await Promise.all([getT(), getPlaceOptions()]);
+  const districts = places.districts.includes("Mumbai") ? places.districts : ["Mumbai", ...places.districts];
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -24,10 +29,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <LanguageSwitch />
       </header>
 
-      <main className="mx-auto grid w-full max-w-5xl flex-1 items-center gap-8 px-4 pb-10 md:grid-cols-2">
+      <main className="mx-auto grid w-full max-w-5xl flex-1 items-start gap-8 px-4 pb-10 md:grid-cols-2 md:items-center">
         <section className="flex flex-col gap-4">
           <h1 className="text-[28px] font-bold leading-9 text-leaf-deep md:text-4xl md:leading-[44px]">{t("common.tagline")}</h1>
-          <p className="text-[17px] leading-[26px] text-muted">{t("login.subtitle")}</p>
+          <p className="text-[17px] leading-[26px] text-muted">{t("welcome.subtitle")}</p>
           <ul className="flex flex-col gap-2 text-[15px]">
             {[
               ["storefront", t("nav.rates")],
@@ -45,12 +50,13 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </section>
 
         <section className="card p-5 sm:p-6">
-          <h2 className="mb-4 text-xl font-semibold text-leaf-deep">{t("login.title")}</h2>
-          {error && <p className="mb-3 rounded-lg bg-down-bg p-3 text-sm text-down">{t("login.linkFailed")}</p>}
-          <LoginForm />
-          <p className="mt-4 flex items-center gap-1.5 text-[13px] text-muted">
-            <Icon name="info" className="text-[16px]" /> {t("login.phoneSoon")}
-          </p>
+          <h2 className="mb-4 text-xl font-semibold text-leaf-deep">{t("welcome.title")}</h2>
+          <ProfileForm
+            mode="welcome"
+            initial={{ name: "", language: locale, district: "Mumbai", preferredMarket: "" }}
+            {...places}
+            districts={districts}
+          />
         </section>
       </main>
     </div>

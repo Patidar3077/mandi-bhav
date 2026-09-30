@@ -1,41 +1,57 @@
 import "server-only";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { serverEnv } from "@/lib/env";
 import { isLocale, type Locale } from "@/lib/i18n/config";
+
+/** No login: a visitor is remembered on their device by a signed cookie holding their visitor id. */
+export const VISITOR_COOKIE = "mb_visitor";
+export const VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 2;
 
 export type Profile = {
   id: string;
-  email: string | null;
-  phone: string | null;
-  name: string | null;
+  name: string;
   language: Locale;
   district: string;
   preferred_market: string | null;
-  onboarded: boolean;
-  trial_ends_at: string;
-  plan: "free" | "paid";
 };
 
-/** The signed-in user's profile, or null. Uses the user's own session (RLS applies). */
-export async function getProfile(): Promise<Profile | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, email, phone, name, language, district, preferred_market, onboarded, trial_ends_at, plan")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!data) return null;
-  return { ...data, language: isLocale(data.language) ? data.language : "en" } as Profile;
+function sign(id: string) {
+  return createHmac("sha256", serverEnv.visitorCookieSecret()).update(id).digest("base64url");
 }
 
-/** For pages: signed in and onboarded, otherwise redirect. */
-export async function requireProfile(opts: { allowNotOnboarded?: boolean } = {}): Promise<Profile> {
+export function visitorCookieValue(id: string) {
+  return `${id}.${sign(id)}`;
+}
+
+/** The visitor id from a cookie value, or null if it's missing or tampered with. */
+export function readVisitorId(value: string | undefined): string | null {
+  if (!value) return null;
+  const dot = value.lastIndexOf(".");
+  if (dot < 1) return null;
+  const id = value.slice(0, dot);
+  const given = Buffer.from(value.slice(dot + 1));
+  const expected = Buffer.from(sign(id));
+  return given.length === expected.length && timingSafeEqual(given, expected) ? id : null;
+}
+
+export async function getProfile(): Promise<Profile | null> {
+  const id = readVisitorId((await cookies()).get(VISITOR_COOKIE)?.value);
+  if (!id) return null;
+  const { data } = await adminClient()
+    .from("visitors")
+    .select("id, name, language, district, preferred_market")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  return { ...data, language: isLocale(data.language) ? data.language : "en" };
+}
+
+/** For pages: the current visitor, or send them to the welcome screen. */
+export async function requireProfile(): Promise<Profile> {
   const profile = await getProfile();
-  if (!profile) redirect("/login");
-  if (!profile.onboarded && !opts.allowNotOnboarded) redirect("/onboarding");
+  if (!profile) redirect("/welcome");
   return profile;
 }

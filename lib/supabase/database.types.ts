@@ -73,6 +73,12 @@ export type Database = {
         Update: { apify_run_id?: string | null; cost_usd?: number; error?: string | null; filter_key?: string | null; filters?: Json; finished_at?: string | null; id?: never; rows_saved?: number; started_at?: string; status?: string; type?: string };
         Relationships: [];
       };
+      visitors: {
+        Row: { created_at: string; district: string; id: string; ip: string | null; language: string; last_seen_at: string; name: string; preferred_market: string | null };
+        Insert: { created_at?: string; district?: string; id?: string; ip?: string | null; language?: string; last_seen_at?: string; name: string; preferred_market?: string | null };
+        Update: { created_at?: string; district?: string; id?: string; ip?: string | null; language?: string; last_seen_at?: string; name?: string; preferred_market?: string | null };
+        Relationships: [];
+      };
       usage_daily: {
         Row: { chats_used: number; searches_used: number; usage_date: string; user_id: string };
         Insert: { chats_used?: number; searches_used?: number; usage_date: string; user_id: string };

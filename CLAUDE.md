@@ -11,7 +11,7 @@ Mandi Bhav AI: a web app for farmers around Mumbai and nearby Maharashtra mandis
 ## Stack
 
 - Next.js (App Router) + TypeScript + Tailwind, deployed on Vercel
-- Supabase for auth (email OTP for now; phone OTP once an SMS provider + DLT is ready) and Postgres
+- Supabase Postgres. No login (owner decision, 30 Sep 2026): visitors enter name + district, remembered by a signed cookie; the server reaches the DB with the anon key + private `x-app-secret` header checked by RLS (see README "No login"). Free for all, with hidden fair-use caps only.
 - Apify actor `themineworks/india-data-gov-scraper` for mandi prices (data.gov.in resource `9ef84268-d588-465a-a308-a864a43d0070`)
 - Claude API for the chatbot and plain-language explanations
 - Recharts for graphs; a small built-in translation layer (`lib/i18n`, `messages/en|hi|mr.json`) instead of next-intl
@@ -24,7 +24,7 @@ Mandi Bhav AI: a web app for farmers around Mumbai and nearby Maharashtra mandis
 - Every price shown has its date next to it.
 - API keys (Apify, data.gov.in, Anthropic, Supabase service role) are used only in server code. Never import them in client components or expose them with `NEXT_PUBLIC_`.
 - Apify calls always go through one helper in `lib/apify.ts` that applies dedupe (60 min), `maxResults`, `maxTotalChargeUsd` and the daily spend cap, and logs to `sync_runs`.
-- Usage limits and trial checks run on the server.
+- Fair-use caps run on the server (no trial or paid plan).
 - Prices are stored per quintal as the data gives them. Convert to per kg only for display.
 - Every user-facing string goes through the translation files. No hardcoded English text in components.
 
