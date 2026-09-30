@@ -2,6 +2,7 @@ import "server-only";
 import { ApifyClient } from "apify-client";
 import { adminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env";
+import { savePriceRows, type PriceRow } from "@/lib/price-store";
 
 /**
  * The ONLY place that talks to Apify. Every run goes through startMandiRun(), which applies
@@ -193,58 +194,31 @@ export async function ingestRun(
   }
 
   const source = syncRun.type === "live" ? "live" : "sync";
-  const rows = [];
+  const rows: PriceRow[] = [];
   for (let offset = 0; ; offset += 1000) {
     const page = await client().dataset(run.defaultDatasetId).listItems({ offset, limit: 1000 });
     for (const item of page.items) rows.push(...normaliseItem(item, source));
     if (page.items.length < 1000) break;
   }
 
-  // One row per (date, market, commodity, variety, grade); keep the last seen.
-  const unique = new Map(rows.map((r) => [`${r.arrival_date}|${r.market}|${r.commodity}|${r.variety}|${r.grade}`, r]));
-  const deduped = [...unique.values()];
-
-  for (let i = 0; i < deduped.length; i += 500) {
-    const chunk = deduped.slice(i, i + 500);
-    const { error } = await db.from("prices").upsert(chunk, { onConflict: "arrival_date,market,commodity,variety,grade" });
-    if (error) {
-      await db.from("sync_runs").update({ status: "failed", error: error.message, finished_at: finishedAt }).eq("id", syncRun.id);
-      return { status: "failed", rowsSaved: i, error: error.message };
-    }
-  }
-
-  const markets = new Map(deduped.map((r) => [`${r.market}|${r.district}`, { market: r.market, district: r.district, state: r.state }]));
-  if (markets.size) {
-    await db.from("markets").upsert([...markets.values()], { onConflict: "market,district", ignoreDuplicates: true });
+  const saved = await savePriceRows(rows);
+  if (saved.error) {
+    await db.from("sync_runs").update({ status: "failed", error: saved.error, finished_at: finishedAt }).eq("id", syncRun.id);
+    return { status: "failed", rowsSaved: saved.saved, error: saved.error };
   }
 
   await db
     .from("sync_runs")
     .update({
       status: "succeeded",
-      rows_saved: deduped.length,
+      rows_saved: saved.saved,
       finished_at: finishedAt,
       ...(cost !== undefined ? { cost_usd: cost } : {}),
     })
     .eq("id", syncRun.id);
 
-  return { status: "succeeded", rowsSaved: deduped.length };
+  return { status: "succeeded", rowsSaved: saved.saved };
 }
-
-type PriceRow = {
-  arrival_date: string;
-  state: string;
-  district: string;
-  market: string;
-  commodity: string;
-  variety: string;
-  grade: string;
-  min_price: number | null;
-  max_price: number | null;
-  modal_price: number;
-  source: string;
-  fetched_at: string;
-};
 
 /** The actor's exact output shape is unconfirmed, so accept lower/Title case keys and nested record arrays. */
 function normaliseItem(item: unknown, source: string): PriceRow[] {

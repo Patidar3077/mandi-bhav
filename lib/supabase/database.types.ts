@@ -20,9 +20,9 @@ export type Database = {
         Relationships: [];
       };
       commodities: {
-        Row: { aliases: string[]; data_name: string; is_quick_pick: boolean; name_en: string; name_hi: string | null; name_mr: string | null };
-        Insert: { aliases?: string[]; data_name: string; is_quick_pick?: boolean; name_en: string; name_hi?: string | null; name_mr?: string | null };
-        Update: { aliases?: string[]; data_name?: string; is_quick_pick?: boolean; name_en?: string; name_hi?: string | null; name_mr?: string | null };
+        Row: { agmarknet_group_id: number | null; agmarknet_id: number | null; aliases: string[]; data_name: string; is_quick_pick: boolean; name_en: string; name_hi: string | null; name_mr: string | null };
+        Insert: { agmarknet_group_id?: number | null; agmarknet_id?: number | null; aliases?: string[]; data_name: string; is_quick_pick?: boolean; name_en: string; name_hi?: string | null; name_mr?: string | null };
+        Update: { agmarknet_group_id?: number | null; agmarknet_id?: number | null; aliases?: string[]; data_name?: string; is_quick_pick?: boolean; name_en?: string; name_hi?: string | null; name_mr?: string | null };
         Relationships: [];
       };
       district_neighbours: {

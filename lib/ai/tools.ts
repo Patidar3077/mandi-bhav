@@ -4,6 +4,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { getDailySeries, getSnapshot, listCommodities } from "@/lib/prices";
 import { getForecast } from "@/lib/forecast/service";
 import { ingestRun, startMandiRun } from "@/lib/apify";
+import { liveAgmarknet } from "@/lib/agmarknet";
 import { resolveCommodity, type Commodity } from "@/lib/commodities";
 
 /**
@@ -80,7 +81,7 @@ export const TOOL_DEFINITIONS: Anthropic.Beta.BetaTool[] = [
   {
     name: "fetch_live_prices",
     description:
-      "Fetch today's prices for a crop in a district directly from the government mandi data (data.gov.in). Slow (up to a minute) and costs money: only use when the other tools return no recent data.",
+      "Fetch today's and yesterday's prices for a crop directly from the government mandi data (Agmarknet, with data.gov.in as a backup). Use it when the other tools return no recent data.",
     strict: true,
     input_schema: {
       type: "object",
@@ -209,6 +210,20 @@ export async function runTool(name: string, rawArgs: unknown, ctx: Ctx): Promise
       };
     }
     case "fetch_live_prices": {
+      const liveMandis = async (rowsSaved: number) => {
+        const snap = await getSnapshot({ commodity: r.commodity, district: r.district });
+        return {
+          fetched: true,
+          rows_saved: rowsSaved,
+          mandis: snap.markets.slice(0, 15).map((m) => ({ mandi: m.market, date: m.latest.date, modal_price: m.latest.modal })),
+          unit,
+        };
+      };
+      // Agmarknet first (free, seconds); Apify + data.gov.in only if that fails.
+      const agm = await liveAgmarknet(r.commodity).catch(() => null);
+      if (agm && ("skipped" in agm || (agm.requests > 0 && !agm.error))) {
+        return liveMandis("skipped" in agm ? 0 : agm.rowsSaved);
+      }
       const start = await startMandiRun({ type: "live", district: r.district, commodity: r.commodity });
       if (!("apifyRunId" in start)) return { fetched: false, reason: start.message };
       const ingest = await ingestRun(start.apifyRunId, { waitSecs: 40 });
@@ -216,13 +231,7 @@ export async function runTool(name: string, rawArgs: unknown, ctx: Ctx): Promise
         return { fetched: false, reason: "The mandi data is still loading. Ask the farmer to try again in a minute." };
       }
       if (ingest.status === "failed") return { fetched: false, reason: ingest.error ?? "fetch failed" };
-      const snap = await getSnapshot({ commodity: r.commodity, district: r.district });
-      return {
-        fetched: true,
-        rows_saved: ingest.rowsSaved,
-        mandis: snap.markets.slice(0, 15).map((m) => ({ mandi: m.market, date: m.latest.date, modal_price: m.latest.modal })),
-        unit,
-      };
+      return liveMandis(ingest.rowsSaved);
     }
     default:
       return { error: `Unknown tool ${name}` };

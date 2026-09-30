@@ -2,13 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getProfile } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/admin";
 import { ingestRun, startMandiRun } from "@/lib/apify";
+import { liveAgmarknet } from "@/lib/agmarknet";
 import { todayIST } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * POST { commodity, district } starts (or reuses) a live Apify fetch and waits briefly.
+ * POST { commodity, district } fetches today's prices from Agmarknet, or else starts (or reuses) a live Apify fetch and waits briefly.
  * GET ?runId= checks progress. The client gives up after ~90s and shows the last stored price.
  */
 export async function POST(request: NextRequest) {
@@ -31,6 +32,13 @@ export async function POST(request: NextRequest) {
     .limit(1);
   if (!searched?.length) return NextResponse.json({ error: "search first" }, { status: 400 });
 
+  // 1. Agmarknet: free and takes seconds. Covers every Maharashtra district for this crop at once.
+  const agm = await liveAgmarknet(commodity).catch(() => null);
+  if (agm && ("skipped" in agm || (agm.requests > 0 && !agm.error))) {
+    return NextResponse.json({ status: "succeeded", rowsSaved: "skipped" in agm ? 0 : agm.rowsSaved, source: "agmarknet" });
+  }
+
+  // 2. Fallback: Apify + data.gov.in (slower, paid).
   const start = await startMandiRun({ type: "live", commodity, district });
   if (!("apifyRunId" in start)) return NextResponse.json({ status: start.status, message: start.message });
 
