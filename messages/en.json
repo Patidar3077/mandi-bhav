@@ -154,5 +154,10 @@
     "hello": "Namaste, {name}",
     "forget": "Use as a different person",
     "forgetHint": "This phone or computer will forget your name and settings."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "This page doesn't exist. Go back to today's mandi prices.",
+    "home": "Go to Mandi Bhav"
   }
 }
