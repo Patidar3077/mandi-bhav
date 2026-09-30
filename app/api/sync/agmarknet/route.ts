@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: `from/to must be dates at most ${MAX_DAYS_PER_CALL} days apart` }, { status: 400 });
   }
   const dates = Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i));
-  const result = await syncAgmarknet({ dates });
+  // If the time budget runs out, call again with ?offset=<nextOffset> to continue.
+  const offset = Number(request.nextUrl.searchParams.get("offset") ?? 0) || 0;
+  const result = await syncAgmarknet({ dates, offset });
   return NextResponse.json({ dates, ...result });
 }

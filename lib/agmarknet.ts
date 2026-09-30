@@ -132,55 +132,80 @@ export async function mappedCommodities(names?: string[]): Promise<AgmCommodity[
   return (data ?? []) as AgmCommodity[];
 }
 
-/** Run tasks with a small concurrency limit, to be gentle with the government server. */
-async function pool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (next < items.length) await fn(items[next++]);
-    }),
-  );
-}
+export type AgmSyncResult = {
+  rowsSaved: number;
+  requests: number;
+  failures: number;
+  /** Where to continue if the time budget ran out before all crops were done; null when finished. */
+  nextOffset: number | null;
+  error?: string;
+};
 
-export type AgmSyncResult = { rowsSaved: number; requests: number; failures: number; error?: string };
-
-/** Fetch and save prices for the given dates and crops. Logged in sync_runs (type "agmarknet"). */
-export async function syncAgmarknet(opts: { dates: string[]; commodities?: string[]; concurrency?: number; filterKey?: string }): Promise<AgmSyncResult> {
+/**
+ * Fetch and save prices for the given dates and crops, one request at a time (Agmarknet rate-limits
+ * parallel requests). Saves after every crop so progress is never lost, and stops starting new requests
+ * once the time budget is used, returning nextOffset so another run can continue. Logged in sync_runs.
+ */
+export async function syncAgmarknet(opts: {
+  dates: string[];
+  commodities?: string[];
+  offset?: number;
+  budgetMs?: number;
+  filterKey?: string;
+}): Promise<AgmSyncResult> {
   const db = adminClient();
+  const startedAt = Date.now();
+  const budgetMs = opts.budgetMs ?? 230_000;
   const crops = await mappedCommodities(opts.commodities);
+  const jobs = opts.dates.flatMap((date) => crops.map((c) => ({ date, c })));
+  const offset = Math.max(0, opts.offset ?? 0);
   const { data: run } = await db
     .from("sync_runs")
-    .insert({ type: "agmarknet", status: "running", filters: { dates: opts.dates, commodities: opts.commodities ?? "all" }, filter_key: opts.filterKey ?? null })
+    .insert({
+      type: "agmarknet",
+      status: "running",
+      filters: { dates: opts.dates, commodities: opts.commodities ?? "all", offset },
+      filter_key: opts.filterKey ?? null,
+    })
     .select("id")
     .single();
 
-  const jobs = opts.dates.flatMap((date) => crops.map((c) => ({ date, c })));
-  const rows: PriceRow[] = [];
+  let rowsSaved = 0;
   let failures = 0;
+  let done = 0;
   let lastError: string | undefined;
-  await pool(jobs, opts.concurrency ?? 1, async ({ date, c }) => {
+  let i = offset;
+  for (; i < jobs.length; i++) {
+    if (Date.now() - startedAt > budgetMs) break;
+    const { date, c } = jobs[i];
     try {
-      rows.push(...(await fetchCommodityDay(c, date)));
+      const saved = await savePriceRows(await fetchCommodityDay(c, date));
+      if (saved.error) throw new Error(saved.error);
+      rowsSaved += saved.saved;
     } catch (err) {
       failures++;
       lastError = err instanceof Error ? err.message : String(err);
     }
-  });
+    done++;
+  }
 
-  const saved = await savePriceRows(rows);
-  const failedAll = jobs.length > 0 && failures === jobs.length;
+  const nextOffset = i < jobs.length ? i : null;
+  const failedAll = done > 0 && failures === done;
   if (run) {
     await db
       .from("sync_runs")
       .update({
-        status: failedAll || saved.error ? "failed" : "succeeded",
-        rows_saved: saved.saved,
+        status: failedAll ? "failed" : "succeeded",
+        rows_saved: rowsSaved,
         finished_at: new Date().toISOString(),
-        error: saved.error ?? (failures ? `${failures}/${jobs.length} requests failed: ${lastError}` : null),
+        error:
+          [failures ? `${failures}/${done} requests failed: ${lastError}` : "", nextOffset !== null ? `stopped at ${nextOffset}/${jobs.length} (time budget)` : ""]
+            .filter(Boolean)
+            .join("; ") || null,
       })
       .eq("id", run.id);
   }
-  return { rowsSaved: saved.saved, requests: jobs.length, failures, error: saved.error ?? (failedAll ? lastError : undefined) };
+  return { rowsSaved, requests: done, failures, nextOffset, error: failedAll ? lastError : undefined };
 }
 
 /** Quick fetch of today's and yesterday's prices for one crop (used by live search and the chatbot). */

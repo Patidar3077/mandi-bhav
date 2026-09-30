@@ -2,5 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["bom1"],
-  "crons": [{ "path": "/api/sync/daily", "schedule": "30 15 * * *" }]
+  "crons": [
+    { "path": "/api/sync/daily/0", "schedule": "30 8 * * *" },
+    { "path": "/api/sync/daily/1", "schedule": "40 8 * * *" },
+    { "path": "/api/sync/daily/2", "schedule": "50 8 * * *" },
+    { "path": "/api/sync/daily/3", "schedule": "0 9 * * *" },
+    { "path": "/api/sync/daily/0", "schedule": "30 15 * * *" },
+    { "path": "/api/sync/daily/1", "schedule": "40 15 * * *" },
+    { "path": "/api/sync/daily/2", "schedule": "50 15 * * *" },
+    { "path": "/api/sync/daily/3", "schedule": "0 16 * * *" }
+  ]
 }

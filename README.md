@@ -46,7 +46,7 @@ All of these are server-only. They are never sent to the browser.
 
 ## How data flows
 
-1. **Daily sync.** Vercel Cron calls `/api/sync/daily` at 21:00 IST. It starts the Apify actor for `state=Maharashtra`. When the run finishes, Apify calls `/api/sync/apify-webhook`, which upserts the rows into `prices`.
+1. **Daily sync (Agmarknet, free).** Vercel Cron calls `/api/sync/daily/0` … `/3` at 14:00 and 21:00 IST (crops split into 4 groups so each run stays under the 5-minute limit). Each fetches today's and yesterday's Maharashtra prices from Agmarknet's public market-wise daily report (`lib/agmarknet.ts`). Only if Agmarknet fails completely does it start the Apify / data.gov.in run; Apify then calls `/api/sync/apify-webhook`, which upserts the rows. `/api/sync/agmarknet?from=1. **Daily sync.** Vercel Cron calls `/api/sync/daily` at 21:00 IST. It starts the Apify actor for `state=Maharashtra`. When the run finishes, Apify calls `/api/sync/apify-webhook`, which upserts the rows into `prices`.to=` backfills history.
    - Vercel Hobby allows one cron a day. For the 14:00 IST run, create a schedule in Apify for the same actor and input, and add a webhook on "Run succeeded" pointing to `https://<your-domain>/api/sync/apify-webhook?secret=<APIFY_WEBHOOK_SECRET>`. Scheduled runs are adopted automatically.
 2. **Live fetch.** When a search has no price for today in that district, the app runs the actor for that crop and district. This is deduped for 60 minutes and gives up after about 90 seconds, showing the last stored price instead.
 3. **Cost guard.** Every Apify call goes through `lib/apify.ts`, which applies `maxResults`, `maxTotalChargeUsd` (Apify's minimum is $0.50) and the daily cap `DAILY_APIFY_SPEND_CAP_USD`. Every run is logged in `sync_runs`.
