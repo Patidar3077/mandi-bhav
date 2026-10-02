@@ -83,18 +83,19 @@ export function ChatPanel({ onClose, className = "" }: { onClose?: () => void; c
           buffer = lines.pop() ?? "";
           for (const line of lines) {
             if (!line.trim()) continue;
-            const event = JSON.parse(line) as { type: string; text?: string; tool?: string };
+            const event = JSON.parse(line) as { type: string; text?: string; tool?: string; reason?: string };
             if (event.type === "status") setBusy("checking");
             if (event.type === "answer" && event.text) {
               answered = true;
               setMessages((m) => [...m, { role: "assistant", content: event.text! }]);
             }
-            if (event.type === "error") throw new Error("chat error");
+            if (event.type === "error") throw new Error(event.reason === "unavailable" ? "unavailable" : "chat error");
           }
         }
         if (!answered) throw new Error("no answer");
-      } catch {
-        setMessages((m) => [...m, { role: "assistant", content: t("chat.error"), error: true }]);
+      } catch (err) {
+        const key = err instanceof Error && err.message === "unavailable" ? "chat.unavailable" : "chat.error";
+        setMessages((m) => [...m, { role: "assistant", content: t(key), error: true }]);
       } finally {
         setBusy(null);
       }

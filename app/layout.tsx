@@ -24,6 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: t("common.appName"), template: `%s · ${t("common.appName")}` },
     description: t("common.tagline"),
+    // Google Search Console ownership tag (needed to ask Google to review a Safe Browsing warning).
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } } : {}),
   };
 }
 

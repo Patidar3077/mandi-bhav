@@ -16,11 +16,11 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "dayBefore": "Day before yesterday",
-    "kisanCallCentre": "Kisan Call Centre",
     "dataSource": "Price data: Agmarknet via data.gov.in",
     "disclaimer": "This is an estimate based on past market prices. It's not a guaranteed future price. Please check with your mandi before selling.",
     "company": "Dhamedi Agro Solution",
-    "languageLabel": "Language"
+    "languageLabel": "Language",
+    "notGov": "Mandi Bhav is a private service by Dhamedi Agro Solution. It is not a government website."
   },
   "nav": {
     "rates": "Mandi Rates",
@@ -33,7 +33,8 @@
     "subtitle": "Tell us your name and district to see mandi prices near you. It's free, with no sign-up or login.",
     "start": "Start",
     "nameRequired": "Please enter your name and choose your district.",
-    "busy": "Too many new users from this network today. Please try again tomorrow."
+    "busy": "Too many new users from this network today. Please try again tomorrow.",
+    "privacy": "We only use your name and district to show prices near you. We never ask for passwords, bank details or OTPs."
   },
   "onboarding": {
     "nameLabel": "Your name",
@@ -143,7 +144,8 @@
     "s3": "Compare with last 30 days",
     "s4": "Which nearby mandi pays the most?",
     "error": "Sorry, something went wrong. Please try again.",
-    "welcome": "Namaste! Ask me about today's mandi prices, trends or which mandi pays more."
+    "welcome": "Namaste! Ask me about today's mandi prices, trends or which mandi pays more.",
+    "unavailable": "The AI advisor isn't available right now. You can still check mandi prices above."
   },
   "limits": {
     "fairUse": "You've reached today's usage limit. Please try again tomorrow."

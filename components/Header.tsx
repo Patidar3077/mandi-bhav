@@ -24,13 +24,6 @@ export async function Header({ profile, trendsHref }: { profile: Profile | null;
 
         <div className="flex shrink-0 items-center gap-2">
           <LanguageSwitch />
-          <a
-            href="tel:18001801551"
-            className="hidden items-center gap-1.5 rounded-lg border border-line bg-cream px-3 py-2 text-xs font-semibold text-brown hover:bg-sand xl:flex"
-          >
-            <Icon name="call" className="text-[18px]" />
-            <span>{t("common.kisanCallCentre")} 1800-180-1551</span>
-          </a>
           {profile && (
             <Link
               href="/profile"

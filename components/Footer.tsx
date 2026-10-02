@@ -12,7 +12,10 @@ export async function Footer() {
             {t("common.appName")} © {new Date().getFullYear()} · {t("common.company")}
           </span>
         </div>
-        <span>{t("common.dataSource")}</span>
+        <div className="flex flex-col items-center gap-0.5 text-center md:items-end md:text-right">
+          <span>{t("common.dataSource")}</span>
+          <span>{t("common.notGov")}</span>
+        </div>
       </div>
     </footer>
   );

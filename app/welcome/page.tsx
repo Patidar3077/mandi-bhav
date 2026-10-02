@@ -57,8 +57,14 @@ export default async function WelcomePage() {
             {...places}
             districts={districts}
           />
+          <p className="mt-4 flex items-start gap-1.5 text-[13px] leading-[18px] text-muted">
+            <Icon name="info" className="shrink-0 text-[16px]" /> {t("welcome.privacy")}
+          </p>
         </section>
       </main>
+      <footer className="px-4 pb-6 text-center text-[13px] text-muted">
+        {t("common.appName")} · {t("common.company")} · {t("common.notGov")}
+      </footer>
     </div>
   );
 }

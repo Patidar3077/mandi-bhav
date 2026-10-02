@@ -91,7 +91,9 @@ export async function POST(request: NextRequest) {
         if (err instanceof Anthropic.RateLimitError) console.error("[chat] rate limited", err.message);
         else if (err instanceof Anthropic.APIError) console.error(`[chat] API error ${err.status}`, err.message);
         else console.error("[chat] failed", err);
-        send({ type: "error" });
+        // 401/403 = the AI service isn't set up (no key, or no card on the Vercel AI Gateway).
+        const unavailable = err instanceof Anthropic.APIError && (err.status === 401 || err.status === 403);
+        send({ type: "error", reason: unavailable ? "unavailable" : "failed" });
       } finally {
         controller.close();
       }
