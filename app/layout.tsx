@@ -19,13 +19,20 @@ const ICONS = [
   "trending_down", "trending_flat", "trending_up", "verified",
 ].sort();
 
+/** The Search Console code, even if the whole `<meta … content="…">` tag or `content="…"` was pasted. */
+function googleVerification() {
+  const raw = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+  if (!raw) return undefined;
+  return raw.match(/content\s*=\s*["']?([^"'\s>]+)/i)?.[1] ?? raw.replace(/["'<>]/g, "").trim();
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
   return {
     title: { default: t("common.appName"), template: `%s · ${t("common.appName")}` },
     description: t("common.tagline"),
     // Google Search Console ownership tag (needed to ask Google to review a Safe Browsing warning).
-    ...(process.env.GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } } : {}),
+    ...(googleVerification() ? { verification: { google: googleVerification() } } : {}),
   };
 }
 
