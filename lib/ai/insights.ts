@@ -36,7 +36,7 @@ export async function getInsight(facts: InsightFacts, locale: Locale): Promise<I
 
   const response = await (await claude()).beta.messages.create({
     model: model(),
-    max_tokens: 1500,
+    max_tokens: 4000, // reasoning models spend part of this on thinking
     // Structured output directly on the Claude API; through the gateway the prompt below asks for the same JSON.
     ...directOnly({
       betas: [FALLBACK_BETA],

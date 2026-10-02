@@ -26,11 +26,14 @@ export async function claude(): Promise<Anthropic> {
   return new Anthropic({ apiKey, baseURL: GATEWAY_URL, timeout: 55_000, maxRetries: 1 });
 }
 
-/** Model id in the right form: "claude-sonnet-5-5" directly, "anthropic/claude-sonnet-5.5" via the gateway. */
+/**
+ * Model id in the right form. Directly: "claude-sonnet-5-5". Via the gateway: "provider/model", e.g.
+ * "anthropic/claude-sonnet-5.5" or "openai/gpt-5-mini" (AI_MODEL; the free Vercel tier doesn't include Claude).
+ */
 export function model() {
-  const id = serverEnv.claudeModel();
-  if (!usingGateway()) return id;
-  if (id.startsWith("anthropic/")) return id;
+  if (!usingGateway()) return serverEnv.claudeModel();
+  const id = process.env.AI_MODEL || serverEnv.claudeModel();
+  if (id.includes("/")) return id;
   return `anthropic/${id.replace(/-(\d+)-(\d+)$/, "-$1.$2")}`;
 }
 
