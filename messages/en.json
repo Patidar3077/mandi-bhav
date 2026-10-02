@@ -161,5 +161,17 @@
     "title": "Page not found",
     "body": "This page doesn't exist. Go back to today's mandi prices.",
     "home": "Go to Mandi Bhav"
+  },
+  "bot": {
+    "noCrop": "Which crop do you want to know about? For example: “onion price today”, “which mandi pays most for tomato”, “last 7 days wheat price” or “expected soybean price next week”.",
+    "nearby": "{district} and nearby mandis",
+    "latest": "{crop} price in {place}: {price} per quintal ({perKg} per kg) on {date}.",
+    "range": "Range that day: {min} – {max}.",
+    "change": "Change from the day before: {change}.",
+    "noData": "I don’t have a price for {crop} around {district} yet. Tap “Check Market Price” above to fetch today’s price.",
+    "best": "Best {crop} prices near {district} on {date} (per quintal):",
+    "history": "{crop} price in {place}, last {n} days (per quintal):",
+    "forecast": "Expected {crop} price in {place} from {from} to {to}: {low} – {high} per quintal ({level} confidence).",
+    "forecastNone": "There isn’t enough price history to forecast {crop} around {district} yet. Check back in about {n} days."
   }
 }

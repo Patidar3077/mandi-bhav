@@ -4,6 +4,7 @@ import { getProfile } from "@/lib/auth";
 import { consumeChatMessage } from "@/lib/limits";
 import { adminClient } from "@/lib/supabase/admin";
 import { answer, type ChatTurn } from "@/lib/ai/chat";
+import { basicAnswer } from "@/lib/ai/basic";
 import { todayIST } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -74,26 +75,30 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: object) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+      const reply = async (text: string) => {
+        await db.from("chat_messages").insert({ user_id: profile.id, conversation_id: conversationId, role: "assistant", content: text });
+        send({ type: "answer", text });
+      };
       try {
         const text = await answer(
           history,
           { district: profile.district, today: todayIST(), language: profile.language, viewing },
           (tool) => send({ type: "status", tool }),
         );
-        await db.from("chat_messages").insert({
-          user_id: profile.id,
-          conversation_id: conversationId,
-          role: "assistant",
-          content: text,
-        });
-        send({ type: "answer", text });
+        await reply(text);
       } catch (err) {
         if (err instanceof Anthropic.RateLimitError) console.error("[chat] rate limited", err.message);
         else if (err instanceof Anthropic.APIError) console.error(`[chat] API error ${err.status}`, err.message);
         else console.error("[chat] failed", err);
-        // 401/403 = the AI service isn't set up (no key, or no card on the Vercel AI Gateway).
-        const unavailable = err instanceof Anthropic.APIError && (err.status === 401 || err.status === 403);
-        send({ type: "error", reason: unavailable ? "unavailable" : "failed" });
+        // AI not available (no key / no card on the AI Gateway, or an outage): answer from our data instead.
+        try {
+          send({ type: "status", tool: "basic" });
+          await reply(await basicAnswer(message, { district: profile.district, locale: profile.language, viewing }));
+        } catch (basicErr) {
+          console.error("[chat] basic helper failed", basicErr);
+          const unavailable = err instanceof Anthropic.APIError && (err.status === 401 || err.status === 403);
+          send({ type: "error", reason: unavailable ? "unavailable" : "failed" });
+        }
       } finally {
         controller.close();
       }
